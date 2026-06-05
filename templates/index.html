@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Customer Churn Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #1a237e 0%, #1565c0 50%, #0288d1 100%); min-height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        .main-card { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #1a237e, #1565c0); padding: 35px; text-align: center; color: white; cursor: pointer; }
+        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 5px; }
+        .header p { opacity: 0.85; font-size: 15px; }
+        .form-section { padding: 35px; }
+        .section-title { font-size: 14px; font-weight: 700; color: #1565c0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid #e3f2fd; }
+        .input-card { background: #f8faff; border: 2px solid #e3f2fd; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 155px; }
+        .input-card label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 2px; display: block; }
+        .input-card .helper { font-size: 11px; color: #777; margin-bottom: 8px; line-height: 1.2; }
+        .input-card .icon { width: 35px; height: 35px; border-radius: 8px; background: linear-gradient(135deg, #1a237e, #1565c0); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+        .input-card .icon i { color: white; font-size: 14px; }
+        .form-control, .form-select { border: 1.5px solid #ccc; border-radius: 8px; padding: 10px 14px; font-size: 16px; width: 100%; color: #333; font-weight: 500; }
+        .btn-predict { background: linear-gradient(135deg, #1a237e, #1565c0); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 17px; font-weight: 600; width: 100%; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(26, 35, 126, 0.2); }
+        .result-box { border-radius: 15px; padding: 25px; text-align: center; margin-top: 25px; color: white; }
+        .result-box.staying { background: linear-gradient(135deg, #2e7d32, #43a047); }
+        .result-box.churn { background: linear-gradient(135deg, #c62828, #e53935); }
+        .result-icon { font-size: 45px; margin-bottom: 10px; }
+        .result-text { font-size: 24px; font-weight: 700; }
+        .result-sub { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+        
+        .model-metrics-box { background: #f4f6f9; border: 1.5px solid #cfd8dc; border-radius: 15px; padding: 25px; margin-bottom: 30px; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+        .metric-item { background: white; padding: 12px; border-radius: 8px; border: 1.5px solid #e0e0e0; text-align: center; }
+        .metric-label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; }
+        .metric-val { font-size: 16px; font-weight: 700; color: #1565c0; margin-top: 4px; }
+        .nav-pills .nav-link { color: #546e7a; font-weight: 600; font-size: 13px; border: 1.5px solid #cfd8dc; margin-right: 5px; border-radius: 8px; background: #fff; padding: 6px 14px; }
+        .nav-pills .nav-link.active { background: linear-gradient(135deg, #1a237e, #1565c0) !important; color: white !important; border-color: transparent; }
+        
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+
+        @media (max-width: 767px) {
+            .form-section { padding: 20px 12px; }
+            .input-card { padding: 12px; margin-bottom: 15px; min-height: auto; }
+            .nav-pills .nav-link { margin-bottom: 5px; width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid py-2 py-md-4" style="max-width: 1240px;">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="main-card">
+                
+                <div class="header" onclick="window.location.href='/'">
+                    <h1><i class="fas fa-chart-line me-2"></i>Customer Churn Predictor</h1>
+                    <p>Fill in the operational details precisely to evaluate performance diagnostics</p>
+                </div>
+
+                <div class="form-section">
+
+                    {% if error %}
+                        <div class="alert alert-danger mb-4 shadow-sm" role="alert" style="border-radius: 10px;">
+                            <i class="fas fa-triangle-exclamation me-2"></i><strong>Validation Alert:</strong> {{ error }}
+                        </div>
+                    {% endif %}
+
+                    <div class="model-metrics-box">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-3">
+                            <div style="font-size: 15px; font-weight: 700; color: #37474f;" class="mb-2 mb-md-0">
+                                <i class="fas fa-shield-halved me-2" style="color: #1565c0;"></i> Diagnostic Benchmarks Performance Profiles
+                            </div>
+                            <ul class="nav nav-pills" id="metricsTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="lr-tab" data-bs-toggle="tab" data-bs-target="#lr-pane" type="button" role="tab" aria-selected="false">Logistic Regression</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="rf-tab" data-bs-toggle="tab" data-bs-target="#rf-pane" type="button" role="tab" aria-selected="false">Random Forest</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="xgb-tab" data-bs-toggle="tab" data-bs-target="#xgb-pane" type="button" role="tab" aria-selected="true">XGBoost (Active)</button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="tab-content" id="metricsTabContent">
+                            {% for key, meta in all_metrics.items() %}
+                            <div class="tab-pane fade {% if key == 'xgb' %}show active{% endif %}" id="{{ key }}-pane" role="tabpanel" aria-labelledby="{{ key }}-tab">
+                                <div class="metrics-grid">
+                                    <div class="metric-item"><div class="metric-label">Accuracy</div><div class="metric-val">{{ meta.accuracy }}</div></div>
+                                    <div class="metric-item"><div class="metric-label">F1 Score</div><div class="metric-val">{{ meta.f1 }}</div></div>
+                                    <div class="metric-item"><div class="metric-label">ROC AUC</div><div class="metric-val">{{ meta.auc }}</div></div>
+                                </div>
+
+                                <div style="font-size: 12px; font-weight: 700; color: #546e7a; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 20px; margin-bottom: 10px;">
+                                    Confusion Matrix — {{ meta.name }}
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-center align-middle m-0" style="background: white; font-size: 14px;">
+                                        <thead>
+                                            <tr style="background-color: #eceff1; color: #455a64;">
+                                                <th style="font-weight: 600; width: 34%;"></th>
+                                                <th style="font-weight: 600;">Predicted No Churn</th>
+                                                <th style="font-weight: 600;">Predicted Churn</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style="background-color: #f8f9fa; font-weight: 600; color: #555;">Actual No Churn</td>
+                                                <td>{{ meta.tn }}</td>
+                                                <td style="color: #c62828; font-weight: 700;">{{ meta.fp }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="background-color: #f8f9fa; font-weight: 600; color: #555;">Actual Churn</td>
+                                                <td style="color: #c62828; font-weight: 700;">{{ meta.fn }}</td>
+                                                <td>{{ meta.tp }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <form action="/predict" method="POST" novalidate>
+                        
+                        <div class="section-title"><i class="fas fa-user me-2"></i>Personal Information</div>
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-birthday-cake"></i></div>
+                                        <label>Customer Age</label>
+                                        <div class="helper">Must be >= 18 years old</div>
+                                    </div>
+                                    <input type="number" name="Age" class="form-control" placeholder="e.g. 25" value="{{ form_values.Age if form_values else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-venus-mars"></i></div>
+                                        <label>Gender</label>
+                                        <div class="helper">Select customer gender mapping format</div>
+                                    </div>
+                                    <select name="Gender" class="form-select">
+                                        <option value="" {% if not form_values or form_values.Gender == '' %}selected{% endif %} disabled hidden>Choose Gender</option>
+                                        <option value="1" {% if form_values and form_values.Gender == '1' %}selected{% endif %}>Male</option>
+                                        <option value="0" {% if form_values and form_values.Gender == '0' %}selected{% endif %}>Female</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fas fa-file-invoice-dollar me-2"></i>Account Details</div>
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-calendar-day"></i></div>
+                                        <label>Customer Since (Months)</label>
+                                        <div class="helper">Total continuous active months</div>
+                                    </div>
+                                    <input type="number" name="Tenure" class="form-control" placeholder="e.g. 24" value="{{ form_values.Tenure if form_values else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-signature"></i></div>
+                                        <label>Contract Type</label>
+                                        <div class="helper">Current profile agreement style</div>
+                                    </div>
+                                    <select name="Contract_Length" class="form-select">
+                                        <option value="" {% if not form_values or form_values.Contract_Length == '' %}selected{% endif %} disabled hidden>Choose Contract Type</option>
+                                        <option value="Annual" {% if form_values and form_values.Contract_Length == 'Annual' %}selected{% endif %}>Annual</option>
+                                        <option value="Monthly" {% if form_values and form_values.Contract_Length == 'Monthly' %}selected{% endif %}>Monthly</option>
+                                        <option value="Quarterly" {% if form_values and form_values.Contract_Length == 'Quarterly' %}selected{% endif %}>Quarterly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-crown"></i></div>
+                                        <label>Subscription Plan</label>
+                                        <div class="helper">Tier structure layout classification</div>
+                                    </div>
+                                    <select name="Subscription_Type" class="form-select">
+                                        <option value="" {% if not form_values or form_values.Subscription_Type == '' %}selected{% endif %} disabled hidden>Choose Subscription Plan</option>
+                                        <option value="Basic" {% if form_values and form_values.Subscription_Type == 'Basic' %}selected{% endif %}>Basic Plan</option>
+                                        <option value="Standard" {% if form_values and form_values.Subscription_Type == 'Standard' %}selected{% endif %}>Standard Plan</option>
+                                        <option value="Premium" {% if form_values and form_values.Subscription_Type == 'Premium' %}selected{% endif %}>Premium Plan</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                                        <label>Total Amount Spent ($)</label>
+                                        <div class="helper">Accumulated account balance tracking metric</div>
+                                    </div>
+                                    <input type="number" step="any" name="Total_Spend" class="form-control" placeholder="e.g. 1600" value="{{ form_values.Total_Spend if form_values else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-title"><i class="fas fa-chart-bar me-2"></i>Customer Behaviour</div>
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-gauge-high"></i></div>
+                                        <label>Monthly Usage (times)</label>
+                                        <div class="helper">System interactions frequency metric</div>
+                                    </div>
+                                    <input type="number" name="Usage_Frequency" class="form-control" placeholder="e.g. 16" value="{{ form_values.Usage_Frequency if form_values else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-headset"></i></div>
+                                        <label>Number of Complaints</label>
+                                        <div class="helper">Customer friction logs count</div>
+                                    </div>
+                                    <input type="number" name="Support_Calls" class="form-control" placeholder="e.g. 2" value="{{ form_values.Support_Calls if form_values else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-clock"></i></div>
+                                        <label>Late Payment (days)</label>
+                                        <div class="helper">Recorded billing execution delay days</div>
+                                    </div>
+                                    <input type="number" name="Payment_Delay" class="form-control" placeholder="e.g. 4" value="{{ form_values.Payment_Delay if form_values else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="input-card">
+                                    <div>
+                                        <div class="icon"><i class="fas fa-history"></i></div>
+                                        <label>Days Since Last Active</label>
+                                        <div class="helper">Days elapsed since terminal dashboard check</div>
+                                    </div>
+                                    <input type="number" name="Last_Interaction" class="form-control" placeholder="e.g. 3" value="{{ form_values.Last_Interaction if form_values else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-predict mt-3"><i class="fas fa-brain me-2"></i>Predict Now</button>
+                    </form>
+
+                    {% if prediction is not none %}
+                        {% if prediction == 0 %}
+                            <div class="result-box staying">
+                                <div class="result-icon">✅</div>
+                                <div class="result-text">Customer is Staying!</div>
+                                <div class="result-sub">Stable operational tracking thresholds verified safely.</div>
+                            </div>
+                        {% elif prediction == 1 %}
+                            <div class="result-box churn">
+                                <div class="result-icon">⚠️</div>
+                                <div class="result-text">Customer May Leave!</div>
+                                <div class="result-sub">Risk variances detected across standard profile boundaries.</div>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-12 col-md-6 mb-3">
+                                    <div class="card h-100 border-danger-subtle" style="border-radius: 15px; border: 1.5px solid #ffccd0; background: #fff8f8;">
+                                        <div class="card-body p-4">
+                                            <h5 class="mb-3" style="color: #c62828; font-size: 16px; font-weight: 700;"><i class="fas fa-magnifying-glass-chart me-2"></i> Churn Triggers</h5>
+                                            <ul class="list-unstyled mb-0">
+                                                {% for reason in reasons %}
+                                                <li class="mb-2 d-flex align-items-start" style="font-size: 14px; color: #444;">
+                                                    <i class="fas fa-triangle-exclamation me-2 mt-1" style="color: #e53935; font-size: 12px;"></i>
+                                                    <span>{{ reason }}</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mb-3">
+                                    <div class="card h-100 border-success-subtle" style="border-radius: 15px; border: 1.5px solid #cceedc; background: #f6fcf8;">
+                                        <div class="card-body p-4">
+                                            <h5 class="mb-3" style="color: #1b5e20; font-size: 16px; font-weight: 700;"><i class="fas fa-shield-heart me-2"></i> Retention Playbook</h5>
+                                            <ul class="list-unstyled mb-0">
+                                                {% for strategy in strategies %}
+                                                <li class="mb-2 d-flex align-items-start" style="font-size: 14px; color: #444;">
+                                                    <i class="fas fa-circle-check me-2 mt-1" style="color: #2e7d32; font-size: 12px;"></i>
+                                                    <span>{{ strategy }}</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("wheel", function (event) {
+        if (document.activeElement.type === "number") {
+            document.activeElement.blur();
+        }
+    });
+</script>
+
+</body>
+</html>
