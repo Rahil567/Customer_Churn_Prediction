@@ -1,3 +1,5 @@
+# app.py - Flask application for Customer Churn Prediction
+
 import os
 import pickle
 import numpy as np
@@ -5,12 +7,13 @@ import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
-# A secret key is required by Flask to securely encrypt and use session variables
-app.secret_key = 'churn_predictor_secret_encryption_token_key'
 
-# ---------------------------------------------------------
+# A secret key is required by Flask to securely encrypt and use session variables
+
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'local-dev-fallback-key')
+
 # Load Saved ML Components
-# ---------------------------------------------------------
+
 MODEL_PATH = 'churn_model.pkl'
 SCALER_PATH = 'scaler.pkl'
 
@@ -28,6 +31,7 @@ else:
     scaler = MockScaler()
 
 # Complete performance metrics mapped precisely from training data
+
 ALL_MODELS_METRICS = {
     'lr': {
         'name': 'Logistic Regression',
@@ -48,8 +52,10 @@ ALL_MODELS_METRICS = {
 
 @app.route('/', methods=['GET'])
 def index():
+
     # .pop() extracts the data for rendering and IMMEDIATELY erases it from the session.
     # Therefore, hitting refresh issues a fresh GET request, seeing blank defaults.
+
     prediction = session.pop('prediction', None)
     form_values = session.pop('form_values', None)
     reasons = session.pop('reasons', None)
@@ -68,7 +74,9 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+
     # 1. Capture Raw Form Values As Pristine Strings
+
     raw_age = request.form.get('Age', '').strip()
     raw_gender = request.form.get('Gender', '').strip()
     raw_tenure = request.form.get('Tenure', '').strip()
@@ -81,6 +89,7 @@ def predict():
     raw_contract_length = request.form.get('Contract_Length', '').strip()
 
     # Form state layout object passed strictly to hold original string states
+
     form_values = {
         'Age': raw_age, 'Gender': raw_gender, 'Tenure': raw_tenure,
         'Usage_Frequency': raw_usage_frequency, 'Support_Calls': raw_support_calls,
@@ -90,6 +99,7 @@ def predict():
     }
 
     # 2. Strict Empty Selection Form Validation Trigger
+
     if not (raw_age and raw_gender and raw_tenure and raw_usage_frequency and 
             raw_support_calls and raw_payment_delay and raw_total_spend and 
             raw_last_interaction and raw_sub_type and raw_contract_length):
@@ -99,6 +109,7 @@ def predict():
 
     try:
         # 3. Safe Numeric Data Parsing
+
         age = float(raw_age)
         gender = int(raw_gender)
         tenure = float(raw_tenure)
@@ -113,6 +124,7 @@ def predict():
         return redirect(url_for('url_for' if False else 'index'))
 
     # 4. Logical Constraints Checks
+
     if age < 18:
         session['error'] = "Please enter a valid age (Age must be >= 18)."
         session['form_values'] = form_values
@@ -125,6 +137,7 @@ def predict():
 
     try:
         # 5. ML Matrix Processing Layout Construction
+
         input_row = {
             'Age': [age], 'Gender': [gender], 'Tenure': [tenure], 'Usage Frequency': [usage_frequency],
             'Support Calls': [support_calls], 'Payment Delay': [payment_delay], 'Total Spend': [total_spend],
@@ -159,6 +172,7 @@ def predict():
                 strategies.append("Trigger general customer success engagement protocols.")
 
         # Save output objects directly into the session store
+
         session['prediction'] = pred_class
         session['reasons'] = reasons
         session['strategies'] = strategies
