@@ -6,7 +6,7 @@ A **machine learning web application** that predicts whether a customer is likel
 
 ## 🚀 Live Demo
 
-> 🌐 [Live Demo](#) *(add your deployment link here)*
+> 🌐 [Live Demo](https://customer-churn-prediction-r8o2.onrender.com)
 
 ---
 
